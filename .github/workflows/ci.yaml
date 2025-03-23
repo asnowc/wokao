@@ -14,6 +14,8 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Install
+        run: deno install --frozen
       - name: Unit test
         run: deno task test
   check:
@@ -23,6 +25,8 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Install
+        run: deno install --frozen
       - name: Check type
         run: deno task check-type
       - name: Check fmt

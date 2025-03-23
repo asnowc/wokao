@@ -1,7 +1,9 @@
 {
   "name": "@asn/wokao",
   "version": "0.0.1",
+  "nodeModulesDir": "manual",
   "tasks": {
+    "test": "deno run -A npm:vitest run",
     "check-type": "deno check src test",
     "check-fmt": "deno fmt --check src test"
   },
@@ -9,12 +11,13 @@
     ".": "./src/mod.ts"
   },
   "imports": {
-    "@asla/wokao": "./src/mod.ts"
+    "@asla/wokao": "./src/mod.ts",
+    "vitest": "npm:vitest@^3.0.9"
   },
   "publish": {
     "include": ["LICENSE", "README.md", "src/**/*.ts"]
   },
-  "compilerOptions": { "lib": ["es2022"] },
+  "compilerOptions": { "lib": ["es2022", "deno.window"] },
   "fmt": {
     "lineWidth": 120,
     "indentWidth": 2

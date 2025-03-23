@@ -1,0 +1,32 @@
+name: CI
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Unit test
+        run: deno task test
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check type
+        run: deno task check-type
+      - name: Check fmt
+        run: deno task check-fmt
+      - name: Publish dry-run
+        if: ${{github.ref_name=='main'}}
+        run: deno task check-fmt

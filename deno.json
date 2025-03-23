@@ -1,0 +1,22 @@
+{
+  "name": "@asn/wokao",
+  "version": "0.0.1",
+  "tasks": {
+    "check-type": "deno check src test",
+    "check-fmt": "deno fmt --check src test"
+  },
+  "exports": {
+    ".": "./src/mod.ts"
+  },
+  "imports": {
+    "@asla/wokao": "./src/mod.ts"
+  },
+  "publish": {
+    "include": ["LICENSE", "README.md", "src/**/*.ts"]
+  },
+  "compilerOptions": { "lib": ["es2022"] },
+  "fmt": {
+    "lineWidth": 120,
+    "indentWidth": 2
+  }
+}

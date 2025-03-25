@@ -12,9 +12,9 @@ export function getBasicType(val: any): BasicType {
  * @public
  */
 export function getClassType(val: any): string {
-  let basicType = getBasicType(val);
+  const basicType = getBasicType(val);
   if (basicType === "object") {
-    let type: string = val.constructor?.name ?? "Object";
+    const type: string = val.constructor?.name ?? "Object";
     return type;
   } else return basicType;
 }
@@ -33,6 +33,7 @@ export class CheckTypeError extends Error {
     let cause: CheckTypeError | object | undefined;
     if (typeof reason === "string") {
       msg = actual ? CheckTypeError.createCheckErrorDesc(reason, actual) : reason;
+      reason = msg;
     } else {
       msg = "Check type error";
       cause = reason;

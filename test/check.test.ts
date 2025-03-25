@@ -27,7 +27,7 @@ describe("检测对象", function () {
     checkType({ a: null }, { a: "null" });
     expect(() => checkType({ a: undefined }, { a: "null" })).checkFail();
   });
-  test("undefined 字段和 字段不存在是有区别的", function () {
+  test("undefined 字段和字段不存在是有区别的", function () {
     checkType({ a: undefined }, { a: "undefined" });
     expect(() => checkType({}, { a: "undefined" })).checkFail();
   });

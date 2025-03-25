@@ -14,12 +14,15 @@ function checkRecord<T>(
   const list = Object.keys(inputObj);
 
   let key: string;
+  let item: any;
   const res = options.copy ? {} : inputObj;
   for (let i = 0; i < list.length; i++) {
     key = list[i];
+    item = inputObj[key];
     try {
-      const value = internalCheckType(inputObj[key], type, options);
+      const value = internalCheckType(item, type, options);
       if (options.copy) res[key] = value;
+      else if (item !== value) res[key] = value;
     } catch (error) {
       errors[key] = getCheckTypeErrorReason(error);
       errCount++;

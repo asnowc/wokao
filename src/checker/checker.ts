@@ -8,7 +8,7 @@ import { CheckTypeError, getBasicType, getClassType } from "../utils.ts";
 export function instanceOf<T extends new (...args: any[]) => any>(
   Class: T,
 ): TypeCheckFn<InstanceType<T>> {
-  if (typeof Class !== "function") throw new Error();
+  if (typeof Class !== "function") throw new Error("Class must be a class");
   return function checkFn(input, option) {
     const basicType = getBasicType(input);
     if (basicType !== "object") throw new CheckTypeError("object", basicType);

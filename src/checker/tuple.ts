@@ -2,55 +2,40 @@ import { internalCheckType } from "../_check_base.ts";
 import type { ExpectType, InferExpect, TypeCheckFn, TypeCheckFnOption } from "../type.ts";
 import { CheckTypeError, getClassType } from "../utils.ts";
 
+function checkLen(expectLen: number, actualLen: number): void {
+  if (actualLen !== expectLen) {
+    throw new CheckTypeError({
+      length: CheckTypeError.createCheckErrorDesc(expectLen.toString(), actualLen.toString()),
+    });
+  }
+}
+
 function checkTuple<T extends any[] = unknown[]>(
-  arr: unknown[],
+  arr: unknown,
   expect: ExpectType[],
   options: Readonly<TypeCheckFnOption>,
 ): T {
   const { checkAll, copy } = options;
-  const checkProvidedOnly = options.policy == "pass";
 
   if (!Array.isArray(arr)) throw new CheckTypeError("Array", getClassType(arr));
   const expectLen = expect.length;
 
-  if (arr.length != expectLen) {
-    if (arr.length > expectLen) {
-      if (checkProvidedOnly) {
-        if (copy) return arr.slice(0, expectLen) as T;
-        else return arr as T;
-      }
-    }
-    throw new CheckTypeError({
-      length: CheckTypeError.createCheckErrorDesc(expectLen.toString(), arr.length.toString()),
-    });
-  }
+  checkLen(expectLen, arr.length);
 
   let isErr = false;
 
   const errors: Record<string, any> = {};
-  let res: T;
-  if (copy) {
-    res = new Array(expectLen) as T;
-    for (let i = 0; i < expectLen; i++) {
-      try {
-        res[i] = internalCheckType(arr[i], expect[i], options);
-      } catch (error) {
-        if (!checkAll) throw error;
-        isErr = true;
-        errors[i] = error;
-      }
-    }
-  } else {
-    res = arr as T;
-    for (let i = 0; i < expectLen; i++) {
-      const actualType = arr[i];
-      try {
-        internalCheckType(actualType, expect[i], options);
-      } catch (error) {
-        errors[i] = error;
-        isErr = true;
-        if (!checkAll) break;
-      }
+  const res: T = (copy ? new Array(expectLen) : arr) as T;
+  for (let i = 0; i < expectLen; i++) {
+    try {
+      const raw = arr[i];
+      const value = internalCheckType(raw, expect[i], options);
+      if (copy) res[i] = value;
+      else if (value !== raw) res[i] = value;
+    } catch (error) {
+      isErr = true;
+      errors[i] = error;
+      if (!checkAll) break;
     }
   }
 
@@ -65,7 +50,6 @@ export type InferExpectTuple<T extends any[]> = T extends [infer P, ...infer Q]
 /** @public 断言目标匹配给定元组类型 */
 export function tuple<T extends ExpectType[]>(expect: T): TypeCheckFn<InferExpectTuple<T>> {
   return function tupleChecker(input, option): InferExpectTuple<T> {
-    if (!Array.isArray(input)) throw new CheckTypeError("Array", getClassType(input));
     return checkTuple(input, expect, option);
   };
 }

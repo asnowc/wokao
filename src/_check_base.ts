@@ -1,5 +1,5 @@
 import { CheckTypeError, getBasicType, getCheckTypeErrorReason } from "./utils.ts";
-import type { ExpectObjectType, ExpectType, InferExpect, TypeCheckFnOption } from "./type.ts";
+import type { ExpectObjectType, ExpectType, InferExpect, TypeCheckFn, TypeCheckFnOption } from "./type.ts";
 
 /**
  * 如果 对象的字段预期类型为可选, 并且实际存在字段为undefined, 则在deleteSurplus为true是将字段删除
@@ -18,25 +18,21 @@ export function checkObject<T extends {}>(
   const res: Record<string, any> = copy ? {} : input;
   const errors: Record<string, any> = {};
   let exist: boolean;
-  let itemValue: any;
   for (const [testKey, exceptType] of Object.entries(except)) {
     exist = Object.hasOwn(input, testKey);
-    itemValue = input[testKey];
+    const item = input[testKey];
     if (!exist) {
-      if (typeof exceptType === "function" && exceptType.wokaOptional) {
-        itemValue = undefined;
-      } else {
+      if (typeof exceptType !== "function" || !(exceptType as TypeCheckFn<any>).wokaOptional) {
+        isErr = true;
         errors[testKey] = new CheckTypeError("存在", "不存在");
         if (checkAll) continue;
-        else {
-          isErr = true;
-          break;
-        }
+        else break;
       }
     }
     try {
-      const value = internalCheckType(itemValue, exceptType, options);
+      const value = internalCheckType(item, exceptType, options);
       if (copy) res[testKey] = value;
+      else if (value !== item) res[testKey] = value;
     } catch (error) {
       isErr = true;
       errors[testKey] = getCheckTypeErrorReason(error);
@@ -90,6 +86,7 @@ export function internalCheckType(
         if (expect instanceof Array) return checkUnion(input, expect, opts);
         return checkObject(input, expect, opts);
       }
+      /* v8 ignore next 4 */
       throw new ParameterError(
         2,
         CheckTypeError.createCheckErrorDesc("ExpectType", getBasicType(input)),
@@ -97,11 +94,10 @@ export function internalCheckType(
       );
     }
     case "function": {
-      const res = expect(input, opts);
-      if (opts.copy) return res;
-      return input;
+      return expect(input, opts);
     }
     default: {
+      /* v8 ignore next 4 */
       throw new ParameterError(
         2,
         CheckTypeError.createCheckErrorDesc("ExpectType", typeof expect),

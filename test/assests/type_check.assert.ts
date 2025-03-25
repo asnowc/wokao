@@ -55,8 +55,11 @@ function isCheckTypeError(received: () => any) {
   try {
     received();
     return {
-      pass: false,
-      message: () => `预期不通过检测, 实际通过`,
+      result: {
+        pass: false,
+        message: () => `预期不通过检测, 实际通过`,
+      },
+      error: undefined,
     };
   } catch (e) {
     error = e;

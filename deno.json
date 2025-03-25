@@ -12,6 +12,7 @@
   },
   "imports": {
     "@asla/wokao": "./src/mod.ts",
+    "@vitest/coverage-v8": "npm:@vitest/coverage-v8@^3.0.9",
     "vitest": "npm:vitest@^3.0.9"
   },
   "publish": {

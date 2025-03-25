@@ -23,6 +23,9 @@ test("instanceOf", function () {
   expect(() => checkType(NaN, mapIns)).checkFail();
   expect(() => checkType(undefined, mapIns)).checkFail();
   expect(() => checkType({}, mapIns)).checkFail();
+
+  //@ts-expect-error
+  expect(() => instanceOf(2)).toThrowError();
 });
 
 test("enumTypes", function () {

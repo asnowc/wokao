@@ -31,5 +31,5 @@ test("默认值 checkType", function () {
   const obj = {};
   const result = checkType(obj, { q: optional("string", undefined, 7) });
   expect(result).toBe(obj);
-  expect(obj).toEqual({});
+  expect(obj).toEqual({ q: 7 });
 });

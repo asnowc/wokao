@@ -16,27 +16,28 @@ function checkArray<T>(
   const errors: Record<string | number, any> = {};
   let errCount = 0;
 
+  let expectLen = input.length;
   if (maxLen !== undefined && input.length > maxLen) {
-    if (checkOpts.policy === "pass") {
-      if (checkOpts.copy) return input.slice(0, maxLen);
-    } else {
+    expectLen = maxLen;
+    if (checkOpts.policy !== "pass") {
       errors.length = CheckTypeError.createCheckErrorDesc(`最大 ${maxLen}`, input.length.toString());
       errCount++;
-      if (!checkOpts.checkAll) throw new CheckTypeError(errors);
+      throw new CheckTypeError(errors);
     }
   }
   if (minLen !== undefined && input.length < minLen) {
     errors.length = CheckTypeError.createCheckErrorDesc(`最小 ${minLen}`, input.length.toString());
     errCount++;
-    if (!checkOpts.checkAll) throw new CheckTypeError(errors);
+    throw new CheckTypeError(errors);
   }
-  const res: T[] = checkOpts.copy ? new Array(input.length) : input;
+  const res: T[] = checkOpts.copy ? new Array(expectLen) : input;
 
   let item: T;
-  for (let i = 0; i < input.length; i++) {
+  for (let i = 0; i < expectLen; i++) {
     try {
       item = internalCheckType(input[i], expect, checkOpts) as T;
-      if (checkOpts.copy) res[i] = item!;
+      if (checkOpts.copy) res[i] = item;
+      else if (item !== input[i]) res[i] = item;
     } catch (error) {
       errCount++;
       errors[i] = getCheckTypeErrorReason(error);

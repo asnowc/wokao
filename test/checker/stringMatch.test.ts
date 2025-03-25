@@ -4,6 +4,7 @@ import "../assests/type_check.assert.ts";
 
 test("integer", function () {
   checkType("123", stringMatch(/123/));
+  expect(() => checkType("abc", stringMatch(/123/))).checkFail();
   expect(() => checkType(123, stringMatch(/123/))).checkFail();
   expect(() => checkType(undefined, stringMatch(/123/))).checkFail();
 });

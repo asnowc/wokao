@@ -16,10 +16,12 @@ test("转换 host", function () {
       };
     },
   } satisfies ExpectType;
-  const input = { value: 1, host: "deno.com:80" };
-  expect(checkType(input, expectType)).toBe(input);
+  expect(checkType({ value: 1, host: "deno.com:80" }, expectType)).toEqual({
+    value: 1,
+    host: { hostName: "deno.com", port: 80 },
+  });
 
-  const copyValue = checkTypeCopy(input, expectType);
+  const copyValue = checkTypeCopy({ value: 1, host: "deno.com:80" }, expectType);
   expect(copyValue).toEqual({ value: 1, host: { hostName: "deno.com", port: 80 } });
   assertType<{ value: number; host: { hostName: string; port: number } }>(copyValue);
 });

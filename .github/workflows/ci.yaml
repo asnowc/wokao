@@ -33,4 +33,4 @@ jobs:
         run: deno task check-fmt
       - name: Publish dry-run
         if: ${{github.ref_name=='main'}}
-        run: deno task check-fmt
+        run: deno publish --dry-run

@@ -1,4 +1,9 @@
+[jsr]: https://jsr.io/badges/@asla/wokao
+[jsr-url]: https://jsr.io/@asla/wokao
+
 ## wokao 是一个参数校验库
+
+[API documentation](https://jsr.io/@asla/wokao/doc)
 
 ### 使用
 

@@ -3,25 +3,24 @@ import { checkType, integer } from "@asla/wokao";
 import "../assests/type_check.assert.ts";
 
 test("integer", function () {
-  expect(checkType(NaN, integer())).not.checkPass();
-  expect(checkType(Infinity, integer())).not.checkPass();
-  expect(checkType(-Infinity, integer())).not.checkPass();
-  expect(checkType("1", integer())).not.checkPass();
-  expect(checkType(true, integer())).not.checkPass();
+  expect(() => checkType(NaN, integer())).checkFail();
+  expect(() => checkType(Infinity, integer())).checkFail();
+  expect(() => checkType(-Infinity, integer())).checkFail();
+  expect(() => checkType("1", integer())).checkFail();
+  expect(() => checkType(true, integer())).checkFail();
 
-  expect(checkType(2, integer())).checkPass();
+  checkType(2, integer());
 });
 test("integer-range", function () {
-  expect(checkType(-1, integer(0))).not.checkPass();
-  expect(checkType(9, integer(0))).checkPass();
+  expect(() => checkType(-1, integer(0))).checkFail();
+  checkType(9, integer(0));
+  checkType(9, integer(0, 10));
+  expect(() => checkType(11, integer(0, 10))).checkFail();
+  expect(() => checkType(NaN, integer(0, 10))).checkFail();
+  expect(() => checkType(Infinity, integer(0, 10))).checkFail();
 
-  expect(checkType(9, integer(0, 10))).checkPass();
-  expect(checkType(11, integer(0, 10))).not.checkPass();
-  expect(checkType(NaN, integer(0, 10))).not.checkPass();
-  expect(checkType(Infinity, integer(0, 10))).not.checkPass();
-
-  expect(checkType("56", integer({ acceptString: true }))).checkPass();
-  expect(checkType("3", integer({ max: 2, acceptString: true }))).not.checkPass();
-  expect(checkType("3", integer({ min: 5, acceptString: true }))).not.checkPass();
-  expect(checkType("3", integer({ min: 0, max: 10, acceptString: true }))).checkPass();
+  checkType("56", integer({ acceptString: true }));
+  expect(() => checkType("3", integer({ max: 2, acceptString: true }))).checkFail();
+  expect(() => checkType("3", integer({ min: 5, acceptString: true }))).checkFail();
+  checkType("3", integer({ min: 0, max: 10, acceptString: true }));
 });

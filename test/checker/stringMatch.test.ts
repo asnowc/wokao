@@ -3,7 +3,7 @@ import { checkType, stringMatch } from "@asla/wokao";
 import "../assests/type_check.assert.ts";
 
 test("integer", function () {
-  expect(checkType(123, stringMatch(/123/))).not.checkPass();
-  expect(checkType("123", stringMatch(/123/))).checkPass();
-  expect(checkType(undefined, stringMatch(/123/))).not.checkPass();
+  checkType("123", stringMatch(/123/));
+  expect(() => checkType(123, stringMatch(/123/))).checkFail();
+  expect(() => checkType(undefined, stringMatch(/123/))).checkFail();
 });

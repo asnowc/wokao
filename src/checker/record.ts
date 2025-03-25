@@ -1,38 +1,44 @@
-import { internalCheckType } from "../check_base.ts";
-import { CustomChecker, ExpectType, InferExpect, TYPE_CHECK_FN, TypeCheckFnCheckResult } from "../type.ts";
+import { internalCheckType } from "../_check_base.ts";
+import type { ExpectType, InferExpect, TypeCheckFn, TypeCheckFnOption } from "../type.ts";
+import { CheckTypeError, getCheckTypeErrorReason } from "../utils.ts";
 
 function checkRecord<T>(
-  val: Record<string, any>,
+  input: unknown,
   type: ExpectType,
-  checkAll?: boolean,
-): TypeCheckFnCheckResult<Record<string, T>> {
+  options: Readonly<TypeCheckFnOption>,
+): Record<string, T> {
+  const inputObj = internalCheckType(input, "object", options) as Record<string, any>;
+
   let errCount = 0;
-  let errors: any = {};
-  const list = Object.keys(val);
+  const errors: any = {};
+  const list = Object.keys(inputObj);
+
   let key: string;
+  const res = options.copy ? {} : inputObj;
   for (let i = 0; i < list.length; i++) {
     key = list[i];
-    let res = internalCheckType(val[key], type);
-    if (!res) continue;
-    if (res.replace) val[key] = res.value;
-    else if (res.error) {
-      errors[key] = res.error;
+    try {
+      const value = internalCheckType(inputObj[key], type, options);
+      if (options.copy) res[key] = value;
+    } catch (error) {
+      errors[key] = getCheckTypeErrorReason(error);
       errCount++;
-      if (!checkAll) return { error: errors };
+      if (!options.checkAll) throw new CheckTypeError(errors);
     }
   }
-  if (errCount) return { error: errors };
+  if (errCount) throw new CheckTypeError(errors);
+  return res;
 }
 
 interface RecordChecker {
-  <T extends ExpectType>(type: T): CustomChecker<Record<string, InferExpect<T>>>;
-  number: CustomChecker<Record<string, number>>;
-  string: CustomChecker<Record<string, string>>;
-  boolean: CustomChecker<Record<string, boolean>>;
-  bigint: CustomChecker<Record<string, bigint>>;
-  symbol: CustomChecker<Record<string, symbol>>;
-  object: CustomChecker<Record<string, object>>;
-  function: CustomChecker<Record<string, (...args: any[]) => any>>;
+  <T extends ExpectType>(type: T): TypeCheckFn<Record<string, InferExpect<T>>>;
+  number: TypeCheckFn<Record<string, number>>;
+  string: TypeCheckFn<Record<string, string>>;
+  boolean: TypeCheckFn<Record<string, boolean>>;
+  bigint: TypeCheckFn<Record<string, bigint>>;
+  symbol: TypeCheckFn<Record<string, symbol>>;
+  object: TypeCheckFn<Record<string, object>>;
+  function: TypeCheckFn<Record<string, (...args: any[]) => any>>;
 }
 /**
  * 断言目标是字典类型
@@ -42,11 +48,9 @@ export const record: RecordChecker = /*  @__NO_SIDE_EFFECTS__ */ function record
   T extends ExpectType,
 >(
   type: T,
-): CustomChecker<Record<string, InferExpect<T>>> {
-  return {
-    [TYPE_CHECK_FN](val, checkOpts) {
-      return checkRecord(val, type, checkOpts.checkAll);
-    },
+): TypeCheckFn<Record<string, InferExpect<T>>> {
+  return function checkRecordChecker(val: unknown, checkOpts: TypeCheckFnOption) {
+    return checkRecord(val, type, checkOpts);
   };
 };
 record.number = record("number");

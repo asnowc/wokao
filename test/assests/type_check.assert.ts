@@ -1,7 +1,7 @@
 import { expect } from "vitest";
+import { CheckTypeError } from "@asla/wokao";
 interface CustomMatchers<R = unknown> {
-  checkPass(): R;
-  checkFail(errDesc?: any): R;
+  checkFail(): R;
   checkFailWithField(fields: string[]): R;
 }
 
@@ -14,52 +14,27 @@ function passMsg() {
 }
 const passRes = { pass: true, message: passMsg };
 expect.extend({
-  checkPass(received: any) {
-    if (typeof received !== "object" || received === null) {
-      return {
-        message() {
-          return "预期返回对象，实际返回" + typeof received;
-        },
-        pass: false,
-      };
-    }
-    if (this.isNot) {
-      return {
-        pass: received.error === undefined,
-        message: () => "预期检测不通过",
-        actual: "检测通过",
-        expected: "检测不通过",
-      };
-    } else {
-      return {
-        pass: received.error === undefined,
-        message: () => "预期检测通过",
-        actual: received.error,
-        expected: "检测通过",
-      };
-    }
+  checkFail(received: () => any) {
+    const { error, result } = isCheckTypeError(received);
+    if (result) return result;
+    return {
+      pass: true,
+      message: passMsg,
+    };
   },
-  checkFail(received: { error: any }, expectError) {
-    const isResult = withError(received);
-    if (isResult) return isResult;
-    if (expectError === undefined) return passRes;
-    try {
-      expect(received.error).toEqual(expectError);
-      return passRes;
-    } catch (error) {
+  checkFailWithField(received: () => any, field: string[]) {
+    const res = isCheckTypeError(received);
+    if (res.result) return res.result;
+    const reason = res.error?.reason;
+    if (typeof reason !== "object") {
       return {
         pass: false,
-        message: () => `预期检测失败`,
-        actual: received.error ?? null,
-        expected: expectError,
+        message: () => `抛出的 CheckTypeError reason 应该是一个对象`,
+        actual: typeof reason,
+        expected: "object",
       };
     }
-  },
-  checkFailWithField(received: { error: any }, field: string[]) {
-    const isResult = withError(received);
-    if (isResult) return isResult;
-
-    const act = Object.keys(received.error);
+    const act = Object.keys(reason);
 
     try {
       expect(act).toEqual(field);
@@ -75,22 +50,30 @@ expect.extend({
   },
 });
 
-function checkRes(res: any) {
-  if (res === undefined || (typeof res === "object" && res !== null)) return;
-  return {
-    pass: false,
-    message: () => `应返回 object 类型, 实际${typeof res}`,
-    expected: {},
-    actual: res,
-  };
-}
-function withError(resv: any) {
-  const res = checkRes(resv);
-  if (res) return res;
-  if (!Object.hasOwn(resv, "error")) {
+function isCheckTypeError(received: () => any) {
+  let error: any;
+  try {
+    received();
     return {
       pass: false,
       message: () => `预期不通过检测, 实际通过`,
     };
+  } catch (e) {
+    error = e;
   }
+  if (!(error instanceof CheckTypeError)) {
+    return {
+      result: {
+        pass: false,
+        message: () => `应抛出 CheckTypeError 异常`,
+        actual: error?.constructor,
+        expected: CheckTypeError,
+      },
+      error: undefined,
+    };
+  }
+  return {
+    error,
+    result: undefined,
+  };
 }

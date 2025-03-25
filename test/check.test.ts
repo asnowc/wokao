@@ -1,137 +1,76 @@
-import { describe, expect, it, test } from "vitest";
-import { checkType } from "@asla/wokao";
+import { describe, expect, test } from "vitest";
+import { checkType, checkTypeCopy, ExpectType } from "@asla/wokao";
 import "./assests/type_check.assert.ts";
+
 describe("基础类型检测", function () {
-  it("null", function () {
-    expect(checkType(null, "null")).checkPass();
-    expect(checkType(null, {})).checkFail();
+  test("null", function () {
+    checkType(null, "null");
+    expect(() => checkType(null, {})).checkFail();
   });
-  it("object", function () {
-    expect(checkType({}, "object")).checkPass();
+  test("object", function () {
+    checkType({}, "object");
+    expect(() => checkType(null, "object")).checkFail();
+    expect(() => checkType("abc", "object")).checkFail();
   });
-  it("symbol", function () {
-    expect(checkType(Symbol(), "symbol")).checkPass();
+  test("symbol", function () {
+    checkType(Symbol(), "symbol");
+    expect(() => checkType({}, "symbol")).checkFail();
   });
 });
 describe("检测对象", function () {
-  it("基本", function () {
+  test("检测对象字段", function () {
     let obj = { s: 3, i: "s", q: undefined };
-    expect(
-      checkType(obj, { s: "number", i: "string", q: "undefined" }),
-    ).checkPass();
+    checkType(obj, { s: "number", i: "string", q: "undefined" });
     expect(obj).toEqual({ s: 3, i: "s", q: undefined });
+    expect(() => checkType({ a: 8 }, { a: "number", b: "number" })).checkFailWithField(["b"]);
+
+    checkType({ a: null }, { a: "null" });
+    expect(() => checkType({ a: undefined }, { a: "null" })).checkFail();
   });
-  it("移除多余", function () {
-    let obj = { s: 3, i: "s", q: undefined };
-    let checkRes = checkType(
-      obj,
-      { s: "number", i: "string" },
-      { policy: "delete" },
-    );
-    expect(checkRes).checkPass();
-    expect(obj).toEqual({ s: 3, i: "s" });
+  test("undefined 字段和 字段不存在是有区别的", function () {
+    checkType({ a: undefined }, { a: "undefined" });
+    expect(() => checkType({}, { a: "undefined" })).checkFail();
   });
-  it("仅匹配", function () {
-    let obj = { s: 3, i: "s", q: undefined };
-    let checkRes = checkType(
-      obj,
-      { s: "number", i: "string" },
-      { policy: "delete" },
-    );
-    expect(checkRes).checkPass();
-    expect(obj).toEqual({ s: 3, i: "s", q: undefined });
-  });
-  it("多余字段检测", function () {
-    let obj = { s: 3, i: "s", q: undefined };
-    let checkRes = checkType(obj, { s: "number", i: "string" });
-    expect(checkRes).checkFail({ q: "预期: 不存在, 实际: 存在" });
-    expect(obj).toEqual({ s: 3, i: "s", q: undefined });
-  });
-  it("检测所有字段", function () {
-    let obj = { s: 3, i: "s", q: undefined };
-    let checkRes = checkType(
-      obj,
-      { s: "number", i: "string", q: "number", y: "number" },
-      { checkAll: true },
-    );
-    expect(checkRes.error).has.keys(["q", "y"]);
-    expect(obj).toEqual({ s: 3, i: "s", q: undefined });
-  });
-  it("检测不通过就跳出", function () {
-    let obj = { s: 3, i: "s", q: undefined };
-    let checkRes = checkType(
-      obj,
-      { s: "number", i: "string", q: "number", y: "number" },
-      { checkAll: false },
-    );
-    let checkRes2 = checkType(obj, {
-      s: "number",
-      i: "string",
-      q: "number",
-      y: "number",
-    });
-    expect(checkRes).checkFailWithField(["q"]);
-    expect(checkRes2).checkFailWithField(["q"]);
-    expect(obj).toEqual({ s: 3, i: "s", q: undefined });
+  test("默认情况下，如果存在多余的字段，则检测不通过, 可通过设置 policy 为 pass 改变这一行为", function () {
+    const obj = { s: 3, i: "s", q: undefined };
+    expect(() => checkTypeCopy(obj, { s: "number", i: "string" })).checkFailWithField(["q"]);
+    expect(checkTypeCopy(obj, { s: "number", i: "string" }, { policy: "pass" })).toEqual({ s: 3, i: "s" });
+
+    expect(() => checkType(obj, { s: "number", i: "string" })).checkFailWithField(["q"]);
   });
 
-  it("预期类型不一致", function () {
-    let obj = { s: 3, y: null, q: undefined };
-    expect(
-      checkType(
-        obj,
-        { s: "string", y: {}, q: "undefined" },
-        { checkAll: true },
-      ),
-      "预期类型不一致",
-    ).checkFailWithField(["s", "y"]);
-    expect(
-      checkType(obj, { s: "string", y: (a: any) => undefined }),
-      "预期类型不一致",
-    ).checkFailWithField(["s"]);
+  test("默认情况下，检测第一个字段不通过就立即抛出异常, 可通过 checkAll 改变这一行为", function () {
+    const obj = { s: 3, i: "s", q: undefined };
+    const expectType = { s: "number", i: "string", q: "number", y: "number" } satisfies ExpectType;
+    expect(() => checkType(obj, expectType, { checkAll: true })).checkFailWithField(["q", "y"]);
+    expect(() => checkType(obj, expectType, { checkAll: false })).checkFailWithField(["q"]);
   });
-  it("预期不存在", function () {
-    let res = checkType({ a: 8 }, { a: "number", b: "number" });
-    expect(res).checkFailWithField(["b"]);
-  });
-  it("判断null类型", function () {
-    let res = checkType({ a: null }, { a: "null" });
-    expect(res).checkPass();
-  });
-  it("传入错误预期类型", function () {
-    let res = checkType({ a: 3 }, { a: "D" } as any);
-    expect(res).checkFailWithField(["a"]);
+
+  test("传入错误预期类型", function () {
+    expect(() => checkType({ a: 3 }, { a: "D" } as any)).checkFailWithField(["a"]);
   });
 });
 
 describe("嵌套", function () {
-  it("仅检测", function () {
-    let res = checkType(
-      { s: 3, i: { q: "s", c: undefined } },
-      { s: "number", i: { q: "string", c: "undefined" } },
-    );
-    expect(res).checkPass();
+  test("仅检测", function () {
+    checkType({ s: 3, i: { q: "s", c: undefined } }, { s: "number", i: { q: "string", c: "undefined" } });
   });
-  it("删除多余", function () {
-    let obj = { s: 3, i: { q: "s", y: null, c: undefined }, b: 6 };
-    let res = checkType(
-      obj,
-      { s: "number", i: { q: "string", c: "undefined" } },
-      { policy: "delete" },
-    );
-    expect(res).checkPass();
-    expect(obj).toEqual({ s: 3, i: { q: "s", c: undefined } });
+  test("copy", function () {
+    const createObj = () => {
+      return { s: 3, i: { q: "s", y: null, c: undefined }, b: 6 };
+    };
+    const obj = createObj();
+    const res = checkTypeCopy(obj, { s: "number", i: { q: "string", c: "undefined" } }, { policy: "pass" });
+    expect(res).toEqual({ s: 3, i: { q: "s", c: undefined } });
+    expect(obj).toEqual(createObj());
   });
 });
 
-test("union", function () {
-  expect(checkType(null, ["string", "null"])).checkPass();
-  expect(checkType(undefined, ["string", "null"])).checkFail();
-  expect(checkType(
-    { s: 3, i: null },
-    { s: ["number", "string"], i: ["string", "null"] },
-  )).checkPass();
-  expect(
-    checkType({ s: 3 }, { s: ["bigint", "string"] }),
-  ).checkFailWithField(["s"]);
+test("联合类型", function () {
+  checkType(null, ["string", "null"]);
+  checkType({ s: 3, i: null }, { s: ["number", "string"], i: ["string", "null"] });
+
+  expect(() => checkType(undefined, ["string", "null"])).checkFail();
+
+  expect(() => checkType({ s: 3 }, { s: ["bigint", "string"] })).checkFailWithField(["s"]);
 });

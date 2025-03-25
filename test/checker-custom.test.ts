@@ -1,49 +1,29 @@
-import { expect, test } from "vitest";
-import { checkType, record } from "@asla/wokao";
+import { assertType, expect, test } from "vitest";
+import { checkType, checkTypeCopy, CheckTypeError } from "@asla/wokao";
 import "./assests/type_check.assert.ts";
 
 test("使用自定义函数判断", function () {
-  let obj = { s: 3, i: "s" };
-  expect(
-    checkType(obj, { s: "number", i: (a: any) => ({ error: "sd" }) }),
-  ).checkFail({ i: "sd" });
-  expect(
-    checkType(obj, { s: "number", i: (a: any) => undefined }),
-  ).checkPass();
-});
-test("转换值", function () {
-  const obj = 10;
-  const { value, error } = checkType(obj, (val) => {
-    return { value: val / 2, replace: true };
-  });
-  expect(value, "值已被替换成").toBe(5);
-  expect(error).toBeUndefined();
-});
-test("对象属性替换", function () {
-  const obj = { aa: 10 };
-  const { value, error } = checkType(obj, {
-    aa: (val) => {
-      return { value: val / 2, replace: true };
-    },
-  });
-  expect(value.aa, "值已被替换成").toBe(5);
-  expect(error).toBeUndefined();
-});
-test("record属性替换", function () {
-  const obj = { aa: 10 };
-  const { value, error } = checkType(
-    obj,
-    record((val) => ({ value: val / 2, replace: true })),
-  );
-  expect(value.aa, "值已被替换成").toBe(5);
-  expect(error).toBeUndefined();
+  const checker = (a: unknown) => {
+    if (a == 1) return 2;
+    throw new CheckTypeError("只能是1");
+  };
+  const value = checkType(1, checker);
+  assertType<number>(value);
+
+  expect(value).toBe(1);
+  expect(checkTypeCopy(1, checker), "转换值").toBe(2);
+  expect(() => checkType(0, checker)).checkFail();
 });
 
-test("校验不通过", function () {
-  const obj = 9;
-  const { value, error } = checkType(obj, (val) => ({
-    error: "xxx",
-  }));
-  expect(value, "值已被替换成8").toBe(9);
-  expect(error).toBe("xxx");
+test("Checker 的返回值只有在 checkTypeCopy 下才会替换原始值", function () {
+  const expectType = (input: unknown) => {
+    return 1;
+  };
+  expect(checkType(undefined, expectType)).toBe(undefined);
+  expect(checkType({ abc: undefined }, { abc: expectType })).toEqual({ abc: undefined });
+
+  expect(checkTypeCopy(undefined, expectType)).toBe(1);
+  expect(checkTypeCopy({ abc: undefined }, { abc: expectType })).toEqual({ abc: 1 });
+
+  assertType<{ abc: number }>(checkTypeCopy({ abc: undefined }, { abc: expectType }));
 });

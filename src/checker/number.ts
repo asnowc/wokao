@@ -1,21 +1,17 @@
-import type { CustomChecker, TypeCheckFn } from "../type.ts";
-import { createTypeErrorDesc } from "../errors.ts";
+import type { TypeCheckFn } from "../type.ts";
+import { CheckTypeError } from "../utils.ts";
 
 /**
  * 断言目标是数字且在指定的范围内
  * @public
  */
-export function numberRange(min: number, max = Infinity): CustomChecker<number> {
-  const checkFn: TypeCheckFn = function checkFn(val: number, option) {
-    if (Number.isNaN(val)) return { error: createTypeErrorDesc("Integer", String(val)) };
-    if (val > max || val < min) {
-      return {
-        error: createTypeErrorDesc(`[${min},${max}]`, val.toString()),
-      };
-    }
+export function numberRange(min: number, max = Infinity): TypeCheckFn<number> {
+  return function checkNumberRange(val, option): number {
+    if (typeof val !== "number") throw new CheckTypeError("number", typeof val);
+    if (Number.isNaN(val)) throw new CheckTypeError("Integer", String(val));
+    if (val > max || val < min) throw new CheckTypeError(`[${min},${max}]`, val.toString());
+    return val;
   };
-  checkFn.baseType = "number";
-  return checkFn;
 }
 /** @public */
 export type NumberCheckOption = {
@@ -31,47 +27,33 @@ export type NumberCheckOption = {
  * @param min - 默认 -Infinity
  * @param max - 默认 Infinity
  */
-export function integer(min?: number, max?: number): CustomChecker<number>;
+export function integer(min?: number, max?: number): TypeCheckFn<number>;
 /**
  * @public 断言目标是一个整数
  */
-export function integer(option?: NumberCheckOption): CustomChecker<number>;
-export function integer(min: number | NumberCheckOption = -Infinity, max: number = Infinity): CustomChecker<number> {
+export function integer(option?: NumberCheckOption): TypeCheckFn<number>;
+export function integer(min: number | NumberCheckOption = -Infinity, max: number = Infinity): TypeCheckFn<number> {
   let acceptString: boolean | undefined = false;
   if (typeof min === "object") {
     max = min.max ?? Infinity;
     acceptString = min.acceptString;
     min = min.min ?? -Infinity;
   }
+  return function checkInteger(input): number {
+    let useValue: number;
+    if (typeof input !== "number") {
+      if (acceptString && typeof input === "string") {
+        useValue = Number.parseInt(input);
+      } else {
+        throw new CheckTypeError("Integer", typeof input);
+      }
+    } else useValue = input;
 
-  if (acceptString) {
-    const checkFnTransform: TypeCheckFn = function checkFn(value: any, option) {
-      let useValue = value;
-      if (typeof useValue !== "number") {
-        if (typeof useValue === "string") useValue = Number.parseInt(useValue);
-        if (!Number.isInteger(useValue)) return { error: createTypeErrorDesc("Integer", String(value)) };
-      }
-      if (useValue > max || useValue < min) {
-        return {
-          error: createTypeErrorDesc(`[${min},${max}]`, useValue.toString()),
-        };
-      }
-      return {
-        value: useValue,
-        replace: useValue !== value,
-      };
-    };
-    return checkFnTransform;
-  } else {
-    const checkFn: TypeCheckFn = function checkFn(val: number, option) {
-      if (!Number.isInteger(val)) return { error: createTypeErrorDesc("Integer", String(val)) };
-      if (val > max || val < min) {
-        return {
-          error: createTypeErrorDesc(`[${min},${max}]`, val.toString()),
-        };
-      }
-    };
-    checkFn.baseType = "number";
-    return checkFn;
-  }
+    if (!Number.isInteger(useValue)) throw new CheckTypeError("Integer", String(input));
+
+    if (useValue > max || useValue < min) {
+      throw new CheckTypeError(`[${min},${max}]`, useValue.toString());
+    }
+    return useValue;
+  };
 }

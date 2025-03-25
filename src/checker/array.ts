@@ -1,15 +1,51 @@
-import { getClassType } from "../get_type.ts";
-import { internalCheckType } from "../check_base.ts";
-import {
-  CustomChecker,
-  ExpectType,
-  InferExpect,
-  TYPE_CHECK_FN,
-  TypeCheckFnCheckResult,
-  TypeCheckOptions,
-} from "../type.ts";
-import { createTypeErrorDesc } from "../errors.ts";
+import type { ExpectType, InferExpect, TypeCheckFn, TypeCheckFnOption } from "../type.ts";
+import { CheckTypeError, createCheckerFn, getCheckTypeErrorReason, getClassType } from "../utils.ts";
+import { internalCheckType } from "../_check_base.ts";
 
+function checkArray<T>(
+  input: unknown,
+  expect: ExpectType,
+  checkOpts: Readonly<TypeCheckFnOption>,
+  option: {
+    maxLen?: number;
+    minLen?: number;
+  } = {},
+): T[] {
+  if (!Array.isArray(input)) throw new CheckTypeError("Array", getClassType(input));
+  const { maxLen, minLen } = option;
+  const errors: Record<string | number, any> = {};
+  let errCount = 0;
+
+  if (maxLen !== undefined && input.length > maxLen) {
+    if (checkOpts.policy === "pass") {
+      if (checkOpts.copy) return input.slice(0, maxLen);
+    } else {
+      errors.length = CheckTypeError.createCheckErrorDesc(`最大 ${maxLen}`, input.length.toString());
+      errCount++;
+      if (!checkOpts.checkAll) throw new CheckTypeError(errors);
+    }
+  }
+  if (minLen !== undefined && input.length < minLen) {
+    errors.length = CheckTypeError.createCheckErrorDesc(`最小 ${minLen}`, input.length.toString());
+    errCount++;
+    if (!checkOpts.checkAll) throw new CheckTypeError(errors);
+  }
+  const res: T[] = checkOpts.copy ? new Array(input.length) : input;
+
+  let item: T;
+  for (let i = 0; i < input.length; i++) {
+    try {
+      item = internalCheckType(input[i], expect, checkOpts) as T;
+      if (checkOpts.copy) res[i] = item!;
+    } catch (error) {
+      errCount++;
+      errors[i] = getCheckTypeErrorReason(error);
+      if (!checkOpts.checkAll) throw new CheckTypeError(errors);
+    }
+  }
+  if (errCount) throw new CheckTypeError(errors);
+  return res;
+}
 interface ArrayChecker {
   <T extends ExpectType>(
     type: T,
@@ -17,14 +53,14 @@ interface ArrayChecker {
       maxLen?: number;
       minLen?: number;
     },
-  ): CustomChecker<InferExpect<T>[]>;
-  number: CustomChecker<number[]>;
-  string: CustomChecker<string[]>;
-  boolean: CustomChecker<boolean[]>;
-  bigint: CustomChecker<bigint[]>;
-  symbol: CustomChecker<symbol[]>;
-  object: CustomChecker<object[]>;
-  function: CustomChecker<((...args: any[]) => any)[]>;
+  ): TypeCheckFn<InferExpect<T>[]>;
+  number: TypeCheckFn<number[]>;
+  string: TypeCheckFn<string[]>;
+  boolean: TypeCheckFn<boolean[]>;
+  bigint: TypeCheckFn<bigint[]>;
+  symbol: TypeCheckFn<symbol[]>;
+  object: TypeCheckFn<object[]>;
+  function: TypeCheckFn<((...args: any[]) => any)[]>;
 }
 
 /**
@@ -39,14 +75,12 @@ export const array: ArrayChecker = /*  @__NO_SIDE_EFFECTS__ */ function array<
     maxLen?: number;
     minLen?: number;
   } = {},
-): CustomChecker<InferExpect<T>[]> {
-  return {
-    baseType: "object",
-    [TYPE_CHECK_FN](val, checkOpts) {
-      return checkArray(val, type, checkOpts, option);
-    },
-  };
+): TypeCheckFn<InferExpect<T>[]> {
+  return createCheckerFn(function wokaoArrayChecker(val, checkOpts) {
+    return checkArray<any>(val, type, checkOpts, option);
+  });
 };
+
 array.number = array("number");
 array.string = array("string");
 array.boolean = array("boolean");
@@ -54,45 +88,3 @@ array.bigint = array("bigint");
 array.symbol = array("symbol");
 array.object = array("object");
 array.function = array("function");
-
-function checkArray<T>(
-  val: any[],
-  type: ExpectType,
-  checkOpts: TypeCheckOptions,
-  option: {
-    maxLen?: number;
-    minLen?: number;
-  } = {},
-): TypeCheckFnCheckResult<T[]> {
-  if (!Array.isArray(val)) return { error: createTypeErrorDesc("Array", getClassType(val)) };
-  const { maxLen, minLen } = option;
-
-  const errors: Record<string | number, any> = {};
-  let errCount = 0;
-
-  if (maxLen !== undefined && val.length > maxLen) {
-    if (checkOpts.policy === "delete") val.length = maxLen;
-    else {
-      errors.length = createTypeErrorDesc(`最大 ${maxLen}`, val.length.toString());
-      errCount++;
-      if (!checkOpts.checkAll) return { error: errors };
-    }
-  }
-  if (minLen !== undefined && val.length < minLen) {
-    errors.length = createTypeErrorDesc(`最小 ${minLen}`, val.length.toString());
-    if (!checkOpts.checkAll) return { error: errors };
-  }
-
-  for (let i = 0; i < val.length; i++) {
-    let item = val[i];
-    let res = internalCheckType(item, type);
-    if (!res) continue;
-    if (res.replace) val[i] = res.value;
-    else if (res.error) {
-      errors[i] = res.error;
-      errCount++;
-      if (!checkOpts.checkAll) return { error: errors };
-    }
-  }
-  if (errCount) return { error: errors };
-}

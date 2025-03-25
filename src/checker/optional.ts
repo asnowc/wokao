@@ -1,25 +1,26 @@
-import { internalCheckType } from "../check_base.ts";
-import { CustomChecker, ExpectType, InferExpect, TYPE_CHECK_FN } from "../type.ts";
+import { internalCheckType } from "../_check_base.ts";
+import type { ExpectType, InferExpect, TypeCheckFn } from "../type.ts";
+import { createCheckerFn } from "../utils.ts";
 
 interface OptionalChecker {
-  <T extends ExpectType>(type: T, mode?: undefined): CustomChecker<InferExpect<T> | undefined>;
-  <T extends ExpectType>(type: T, mode: null): CustomChecker<InferExpect<T> | null>;
+  <T extends ExpectType>(type: T, mode?: undefined): TypeCheckFn<InferExpect<T> | undefined>;
+  <T extends ExpectType>(type: T, mode: null): TypeCheckFn<InferExpect<T> | null>;
   <T extends ExpectType>(
     type: T,
     mode?: undefined | null | "nullish",
-  ): CustomChecker<InferExpect<T> | undefined | null>;
+  ): TypeCheckFn<InferExpect<T> | undefined | null>;
   <T extends ExpectType, Def = T>(
     type: T,
     mode: undefined | null | "nullish",
     defaultValue: Def,
-  ): CustomChecker<InferExpect<T> | Def>;
-  number: CustomChecker<number | undefined>;
-  string: CustomChecker<string | undefined>;
-  boolean: CustomChecker<boolean | undefined>;
-  bigint: CustomChecker<bigint | undefined>;
-  symbol: CustomChecker<symbol | undefined>;
-  object: CustomChecker<object | undefined>;
-  function: CustomChecker<((...args: any[]) => any) | undefined>;
+  ): TypeCheckFn<InferExpect<T> | Def>;
+  number: TypeCheckFn<number | undefined>;
+  string: TypeCheckFn<string | undefined>;
+  boolean: TypeCheckFn<boolean | undefined>;
+  bigint: TypeCheckFn<bigint | undefined>;
+  symbol: TypeCheckFn<symbol | undefined>;
+  object: TypeCheckFn<object | undefined>;
+  function: TypeCheckFn<((...args: any[]) => any) | undefined>;
 }
 /**
  * 断言目标是可选类型
@@ -31,30 +32,24 @@ export const optional: OptionalChecker = /*  @__NO_SIDE_EFFECTS__ */ function op
   type: T,
   mode: undefined | null | "nullish" = undefined,
   defaultValue?: any,
-): CustomChecker<InferExpect<T>> {
+): TypeCheckFn<InferExpect<T>> {
   if (mode === "nullish") {
-    return {
-      optional: true,
-      [TYPE_CHECK_FN](val, checkOpts) {
-        if (val === undefined || val === null) {
-          if (defaultValue !== undefined) return { value: defaultValue, replace: true };
-          return;
-        }
-        return internalCheckType(val, type, checkOpts);
-      },
-    };
-  }
-
-  return {
-    optional: true,
-    [TYPE_CHECK_FN](val, checkOpts) {
-      if (val === mode) {
-        if (defaultValue !== undefined) return { value: defaultValue, replace: true };
+    return createCheckerFn(function optionalChecker(val, checkOpts) {
+      if (val === undefined || val === null) {
+        if (defaultValue !== undefined) return defaultValue;
         return;
       }
       return internalCheckType(val, type, checkOpts);
-    },
-  };
+    }, { optional: true });
+  }
+
+  return createCheckerFn(function optionalChecker(val, checkOpts) {
+    if (val === mode) {
+      if (defaultValue !== undefined) return defaultValue;
+      return;
+    }
+    return internalCheckType(val, type, checkOpts);
+  }, { optional: true });
 };
 optional.number = optional("number");
 optional.string = optional("string");

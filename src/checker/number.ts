@@ -13,6 +13,7 @@ export function numberRange(min: number, max = Infinity): TypeCheckFn<number> {
     return val;
   };
 }
+
 /** @public */
 export type NumberCheckOption = {
   /** 默认为 -Infinity */
@@ -57,3 +58,8 @@ export function integer(min: number | NumberCheckOption = -Infinity, max: number
     return useValue;
   };
 }
+
+/** 断言目标是一个正整数，转换字符串 */
+integer.positive = integer({ acceptString: true, min: 1 });
+/** 断言目标是一个非负整数，转换字符串 */
+integer.nonnegative = integer({ acceptString: true, min: 0 });

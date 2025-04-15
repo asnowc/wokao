@@ -24,3 +24,22 @@ test("integer-range", function () {
   expect(() => checkType("3", integer({ min: 5, acceptString: true }))).checkFail();
   checkType("3", integer({ min: 0, max: 10, acceptString: true }));
 });
+test("integer.positive", function () {
+  checkType(1, integer.positive);
+  checkType(100, integer.positive);
+  checkType("100", integer.positive);
+
+  expect(() => checkType(-1, integer.positive)).checkFail();
+  expect(() => checkType(0, integer.positive)).checkFail();
+  expect(() => checkType("0", integer.positive)).checkFail();
+  expect(() => checkType("-1", integer.positive)).checkFail();
+});
+test("integer.nonnegative", function () {
+  checkType(0, integer.nonnegative);
+  checkType(1, integer.nonnegative);
+  checkType(100, integer.nonnegative);
+  checkType("100", integer.nonnegative);
+
+  expect(() => checkType(-1, integer.nonnegative)).checkFail();
+  expect(() => checkType("-1", integer.nonnegative)).checkFail();
+});

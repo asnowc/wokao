@@ -1,6 +1,6 @@
 {
   "name": "@asla/wokao",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "nodeModulesDir": "manual",
   "tasks": {
     "test": "deno run -A npm:vitest run",

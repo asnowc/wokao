@@ -23,17 +23,25 @@ export type NumberCheckOption = {
   /** 如果为 true, 尝试将字符串转为整数 */
   acceptString?: boolean;
 };
-/**
- * @public 断言目标是一个整数
- * @param min - 默认 -Infinity
- * @param max - 默认 Infinity
- */
-export function integer(min?: number, max?: number): TypeCheckFn<number>;
-/**
- * @public 断言目标是一个整数
- */
-export function integer(option?: NumberCheckOption): TypeCheckFn<number>;
-export function integer(min: number | NumberCheckOption = -Infinity, max: number = Infinity): TypeCheckFn<number> {
+
+interface IntegerChecker {
+  /**
+   * 断言目标是一个整数
+   * @param min - 默认 -Infinity
+   * @param max - 默认 Infinity
+   */
+  (min?: number, max?: number): TypeCheckFn<number>;
+  /** 断言目标是一个整数 */
+  (option?: NumberCheckOption): TypeCheckFn<number>;
+  /** 断言目标是一个正整数 */
+  positive: TypeCheckFn<number>;
+  /** 断言目标是一个非负整数 */
+  nonnegative: TypeCheckFn<number>;
+}
+export const integer: IntegerChecker = /* @__NO_SIDE_EFFECTS__ */ function integer(
+  min: number | NumberCheckOption = -Infinity,
+  max: number = Infinity,
+): TypeCheckFn<number> {
   let acceptString: boolean | undefined = false;
   if (typeof min === "object") {
     max = min.max ?? Infinity;
@@ -57,7 +65,7 @@ export function integer(min: number | NumberCheckOption = -Infinity, max: number
     }
     return useValue;
   };
-}
+};
 
 /** 断言目标是一个正整数，转换字符串 */
 integer.positive = integer({ acceptString: true, min: 1 });

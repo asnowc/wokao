@@ -37,7 +37,7 @@ export const optional: OptionalChecker = /*  @__NO_SIDE_EFFECTS__ */ function op
     return createCheckerFn(function optionalChecker(val, checkOpts) {
       if (val === undefined || val === null) {
         if (defaultValue !== undefined) return defaultValue;
-        return;
+        return val;
       }
       return internalCheckType(val, type, checkOpts);
     }, { optional: true });
@@ -46,7 +46,7 @@ export const optional: OptionalChecker = /*  @__NO_SIDE_EFFECTS__ */ function op
   return createCheckerFn(function optionalChecker(val, checkOpts) {
     if (val === mode) {
       if (defaultValue !== undefined) return defaultValue;
-      return;
+      return val;
     }
     return internalCheckType(val, type, checkOpts);
   }, { optional: true });

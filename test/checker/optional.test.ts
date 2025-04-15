@@ -33,3 +33,19 @@ test("默认值 checkType", function () {
   expect(result).toBe(obj);
   expect(obj).toEqual({ q: 7 });
 });
+
+test("nullish", function () {
+  {
+    const obj = {};
+    const result = checkType(obj, { q: optional("string", "nullish") });
+    assertType<{ q?: string | null }>(result);
+    expect(result).toEqual({});
+  }
+
+  {
+    const obj = { q: null };
+    const result = checkType(obj, { q: optional("string", "nullish") });
+    assertType<{ q?: string | null }>(result);
+    expect(result).toEqual({ q: null });
+  }
+});
